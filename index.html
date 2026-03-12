@@ -1,31 +1,181 @@
-<html>
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
 <meta charset="UTF-8">
 <title>PRP Navigator</title>
-<link rel="stylesheet" href="style.css">
+
+<style>
+
+body{
+margin:0;
+overflow:hidden;
+background:#0b1220;
+font-family:Arial;
+}
+
+#title{
+position:absolute;
+top:20px;
+left:50%;
+transform:translateX(-50%);
+color:white;
+font-size:28px;
+font-weight:bold;
+}
+
+</style>
+
 </head>
 
 <body>
 
-<div id="ui">
-<h3>PRP Navigator</h3>
+<div id="title">PRP Navigator</div>
 
-<input id="startRoom" placeholder="Start Room (742)">
-<input id="endRoom" placeholder="End Room (215)">
-<button id="pathBtn">Find Path</button>
+<script type="module">
 
-<br><br>
+import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160/build/three.module.js";
+import {OrbitControls} from "https://cdn.jsdelivr.net/npm/three@0.160/examples/jsm/controls/OrbitControls.js";
 
-<button id="nightBtn">Toggle Night Mode</button>
-<button id="focusBtn">Focus Campus</button>
+/* Scene */
 
-</div>
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0b1220);
 
-<div id="tooltip"></div>
+/* Camera */
 
-<script type="module" src="app.js"></script>
+const camera = new THREE.PerspectiveCamera(
+60,
+window.innerWidth/window.innerHeight,
+0.1,
+1000
+);
+
+camera.position.set(80,60,80);
+
+/* Renderer */
+
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(window.innerWidth,window.innerHeight);
+document.body.appendChild(renderer.domElement);
+
+/* Controls */
+
+const controls = new OrbitControls(camera,renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.05;
+
+/* Lights */
+
+const light = new THREE.DirectionalLight(0xffffff,1.5);
+light.position.set(100,200,100);
+scene.add(light);
+
+scene.add(new THREE.AmbientLight(0xffffff,0.6));
+
+/* Ground */
+
+const ground = new THREE.Mesh(
+new THREE.PlaneGeometry(500,500),
+new THREE.MeshStandardMaterial({color:0x111827})
+);
+
+ground.rotation.x = -Math.PI/2;
+scene.add(ground);
+
+/* Building creator */
+
+function createBuilding(x){
+
+const group = new THREE.Group();
+
+/* main tower */
+
+const tower = new THREE.Mesh(
+
+new THREE.BoxGeometry(20,40,20),
+
+new THREE.MeshStandardMaterial({
+color:0x3b82f6,
+metalness:0.5,
+roughness:0.2
+})
+
+);
+
+tower.position.y = 20;
+group.add(tower);
+
+/* random rooms */
+
+for(let i=0;i<50;i++){
+
+const room = new THREE.Mesh(
+
+new THREE.BoxGeometry(2,2,2),
+
+new THREE.MeshStandardMaterial({
+color:0xffffaa,
+emissive:0xffffaa,
+emissiveIntensity:1
+})
+
+);
+
+room.position.set(
+(Math.random()-0.5)*18,
+Math.random()*38+1,
+10.5
+);
+
+tower.add(room);
+
+}
+
+group.position.x = x;
+
+scene.add(group);
+
+}
+
+/* Create 5 buildings */
+
+createBuilding(-60);
+createBuilding(-30);
+createBuilding(0);
+createBuilding(30);
+createBuilding(60);
+
+/* Grid */
+
+const grid = new THREE.GridHelper(500,50,0x444444,0x222222);
+scene.add(grid);
+
+/* Resize */
+
+window.addEventListener("resize",()=>{
+
+camera.aspect = window.innerWidth/window.innerHeight;
+camera.updateProjectionMatrix();
+renderer.setSize(window.innerWidth,window.innerHeight);
+
+});
+
+/* Animation */
+
+function animate(){
+
+requestAnimationFrame(animate);
+
+controls.update();
+
+renderer.render(scene,camera);
+
+}
+
+animate();
+
+</script>
 
 </body>
 </html>
