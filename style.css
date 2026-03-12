@@ -9,7 +9,6 @@ canvas{
 position:fixed;
 top:0;
 left:0;
-z-index:0;
 }
 
 #ui{
@@ -17,18 +16,17 @@ position:absolute;
 top:20px;
 left:20px;
 background:rgba(0,0,0,0.8);
-color:white;
 padding:15px;
 border-radius:10px;
-z-index:10;
+color:white;
 }
 
 #tooltip{
 position:absolute;
-color:white;
 background:black;
-padding:4px 8px;
-border-radius:5px;
+color:white;
+padding:5px 8px;
+border-radius:6px;
 display:none;
-z-index:20;
+font-size:13px;
 }
