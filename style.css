@@ -1,18 +1,26 @@
 body{
 margin:0;
 overflow:hidden;
-background:#0f172a;
+background:#0b1220;
 font-family:Arial;
+}
+
+canvas{
+position:fixed;
+top:0;
+left:0;
+z-index:0;
 }
 
 #ui{
 position:absolute;
 top:20px;
 left:20px;
-background:rgba(0,0,0,0.6);
+background:rgba(0,0,0,0.8);
 color:white;
 padding:15px;
 border-radius:10px;
+z-index:10;
 }
 
 #tooltip{
@@ -22,4 +30,5 @@ background:black;
 padding:4px 8px;
 border-radius:5px;
 display:none;
+z-index:20;
 }
