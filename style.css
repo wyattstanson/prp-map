@@ -1,0 +1,25 @@
+body{
+margin:0;
+overflow:hidden;
+background:#0f172a;
+font-family:Arial;
+}
+
+#ui{
+position:absolute;
+top:20px;
+left:20px;
+background:rgba(0,0,0,0.6);
+color:white;
+padding:15px;
+border-radius:10px;
+}
+
+#tooltip{
+position:absolute;
+color:white;
+background:black;
+padding:4px 8px;
+border-radius:5px;
+display:none;
+}
