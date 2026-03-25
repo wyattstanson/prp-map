@@ -1,46 +1,134 @@
 <html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>PRP Navigator</title>
-<link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PRP Navigator — VIT Vellore</title>
+  <link rel="stylesheet" href="style.css" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&family=Instrument+Serif:ital@0;1&display=swap"
+    rel="stylesheet"
+  />
 </head>
-
 <body>
 
-<div class="app">
-
-  <div class="sidebar">
-    <h2>PRP Navigator</h2>
-
-    <div class="floor-controls">
-      <button onclick="setFloor('G')">G</button>
-      <button onclick="setFloor('1')">1</button>
-      <button onclick="setFloor('2')">2</button>
-      <button onclick="setFloor('3')">3</button>
-      <button onclick="setFloor('4')">4</button>
-      <button onclick="setFloor('5')">5</button>
-      <button onclick="setFloor('6')">6</button>
-      <button onclick="setFloor('7')">7</button>
+  
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <span class="logo">PRP<em>Nav</em></span>
+      <span class="logo-sub">VIT Vellore</span>
     </div>
 
-    <div id="messages"></div>
-
-    <div class="chat-input">
-      <input id="chatInput" placeholder="Ask (e.g. 742)">
-      <button id="sendBtn">Send</button>
+   
+    <div class="panel" id="infoPanel">
+      <div class="panel-label">Selected</div>
+      <div class="panel-empty" id="infoPanelEmpty">Click a block on the map</div>
+      <div class="panel-content hidden" id="infoPanelContent">
+        <div class="info-block-name" id="infoBlockName">—</div>
+        <div class="info-meta" id="infoMeta">—</div>
+        <div class="info-tags" id="infoTags"></div>
+      </div>
     </div>
 
-  </div>
+   
+    <div class="panel" id="floorPanel">
+      <div class="panel-label">Floor</div>
+      <div class="floor-grid" id="floorGrid">
+      
+      </div>
+    </div>
 
-  <div class="map-container">
-    <img src="prp.jpg" class="bg-image">
-    <canvas id="map"></canvas>
-  </div>
+  
+    <div class="panel">
+      <div class="panel-label">Navigate</div>
+      <div class="nav-form">
+        <input
+          type="text"
+          id="navFrom"
+          class="nav-input"
+          placeholder="From block (e.g. A)"
+          maxlength="1"
+        />
+        <div class="nav-arrow">→</div>
+        <input
+          type="text"
+          id="navTo"
+          class="nav-input"
+          placeholder="To block (e.g. D)"
+          maxlength="1"
+        />
+        <button class="btn-nav" id="btnNavigate">Find Path</button>
+        <button class="btn-clear" id="btnClear">Clear</button>
+      </div>
+      <div class="path-result hidden" id="pathResult"></div>
+    </div>
 
-</div>
+   
+    <div class="panel legend-panel">
+      <div class="panel-label">Legend</div>
+      <div class="legend-items" id="legendItems">
+     
+      </div>
+    </div>
+  </aside>
 
-<script type="module" src="app.js"></script>
+  <main class="main">
+    <div class="map-toolbar">
+      <div class="toolbar-left">
+        <span class="map-title">Campus Map</span>
+        <span class="map-floor-badge" id="mapFloorBadge">All Floors</span>
+      </div>
+      <div class="toolbar-right">
+        <button class="tool-btn" id="btnZoomIn" title="Zoom In">+</button>
+        <button class="tool-btn" id="btnZoomOut" title="Zoom Out">−</button>
+        <button class="tool-btn" id="btnReset" title="Reset View">⌖</button>
+        <button class="tool-btn" id="btnToggle3D" title="Toggle 3D">3D</button>
+      </div>
+    </div>
 
+    <div class="canvas-wrap" id="canvasWrap">
+      <canvas id="mapCanvas"></canvas>
+      <div class="canvas-hint" id="canvasHint">Drag to pan · Scroll to zoom</div>
+    </div>
+  </main>
+
+
+  <section class="chat-panel" id="chatPanel">
+    <div class="chat-header">
+      <span class="chat-title">Room Assistant</span>
+      <div class="chat-status">
+        <span class="status-dot"></span>
+        <span>Online</span>
+      </div>
+    </div>
+
+    <div class="chat-messages" id="chatMessages">
+      <div class="chat-msg bot">
+        <div class="msg-avatar">N</div>
+        <div class="msg-bubble">
+          Hi! Enter a room number like <code>742</code> and I'll tell you exactly where it is.
+        </div>
+      </div>
+    </div>
+
+    <div class="chat-input-row">
+      <input
+        type="text"
+        id="chatInput"
+        class="chat-input"
+        placeholder="Enter room number…"
+        autocomplete="off"
+      />
+      <button class="btn-send" id="btnSend">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="22" y1="2" x2="11" y2="13"></line>
+          <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+        </svg>
+      </button>
+    </div>
+  </section>
+
+  
+  <script type="module" src="app.js"></script>
 </body>
 </html>

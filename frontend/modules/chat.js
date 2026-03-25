@@ -1,56 +1,124 @@
-export function setupChat(rooms, draw, highlight, drawPath, blocks, ctx){
+let messagesEl = null;
+let inputEl    = null;
+let sendBtnEl  = null;
 
-const messages = document.getElementById("messages");
-const input = document.getElementById("chatInput");
-const button = document.getElementById("sendBtn");
+let onRoomLocated = null;
 
-function addMessage(text, type){
-const div=document.createElement("div");
-div.classList.add("message",type);
-div.innerText=text;
-messages.appendChild(div);
-messages.scrollTop=messages.scrollHeight;
+const API_URL = "http://127.0.0.1:5000/chat";
+
+export function initChat(els, callbacks) {
+  messagesEl   = els.messages;
+  inputEl      = els.input;
+  sendBtnEl    = els.sendBtn;
+  onRoomLocated = callbacks.onRoomLocated || (() => {});
+
+  sendBtnEl.addEventListener("click", handleSend);
+  inputEl.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  });
 }
 
-async function sendMessage(){
+export function appendMessage(role, text) {
+  const wrap = document.createElement("div");
+  wrap.className = `chat-msg ${role}`;
 
-const userText=input.value.trim();
-if(!userText) return;
+  const avatar = document.createElement("div");
+  avatar.className = "msg-avatar";
+  avatar.textContent = role === "bot" ? "N" : "U";
 
-addMessage(userText,"user");
-input.value="";
+  const bubble = document.createElement("div");
+  bubble.className = "msg-bubble";
+  bubble.innerHTML = formatMessageText(text);
 
-const res = await fetch("http://localhost:5000/chat",{
-method:"POST",
-headers:{"Content-Type":"application/json"},
-body: JSON.stringify({message:userText})
-});
+  wrap.appendChild(avatar);
+  wrap.appendChild(bubble);
+  messagesEl.appendChild(wrap);
+  scrollToBottom();
 
-const data = await res.json();
-
-addMessage(data.reply,"bot");
-
-if(data.room){
-
-const room=rooms[data.room];
-
-if(room){
-window.setFloor(data.floor);
-draw();
-highlight(ctx,blocks,room);
-drawPath(ctx,blocks,"A",room);
+  return wrap;
 }
 
+function showTypingIndicator() {
+  const wrap = appendMessage("bot", "");
+  wrap.querySelector(".msg-bubble").innerHTML = `
+    <div class="typing-indicator">
+      <span></span><span></span><span></span>
+    </div>`;
+  scrollToBottom();
+  return {
+    remove: () => {
+      if (wrap.parentElement) wrap.parentElement.removeChild(wrap);
+    },
+  };
 }
 
+async function handleSend() {
+  const raw = inputEl.value.trim();
+  if (!raw) return;
+
+  inputEl.value = "";
+  setInputLocked(true);
+  appendMessage("user", raw);
+
+  const typing = showTypingIndicator();
+
+  try {
+    const data = await sendToBackend(raw);
+    typing.remove();
+    appendMessage("bot", formatBotReply(data));
+    if (data.valid) {
+      onRoomLocated(data);
+    }
+  } catch (err) {
+    typing.remove();
+    appendMessage("bot", `Connection error — is the Flask server running?\n\`${err.message}\``);
+  } finally {
+    setInputLocked(false);
+    inputEl.focus();
+  }
 }
 
-button.onclick=sendMessage;
+async function sendToBackend(message) {
+  const response = await fetch(API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ message }),
+  });
 
-input.addEventListener("keydown",(e)=>{
-if(e.key==="Enter") sendMessage();
-});
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+  }
 
-addMessage("Ask a room (e.g. 742)", "bot");
+  return response.json();
+}
 
+function formatBotReply(data) {
+  if (!data.valid) {
+    return data.reply || "I couldn't understand that. Try a room number like `742`.";
+  }
+  return (
+    `Found **${data.room}** — ` +
+    `**${data.block} Block** (${data.subtitle || ""}) · ${data.floor_label}. ` +
+    `Room index **${data.room_index}** falls in range ${data.range_start}–${data.range_end}.`
+  );
+}
+
+function formatMessageText(text) {
+  return text
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/`(.+?)`/g, "<code>$1</code>")
+    .replace(/\n/g, "<br>");
+}
+
+function scrollToBottom() {
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+function setInputLocked(locked) {
+  inputEl.disabled   = locked;
+  sendBtnEl.disabled = locked;
+  sendBtnEl.style.opacity = locked ? "0.5" : "1";
 }

@@ -1,73 +1,77 @@
-import { getRoomPosition, getBlockCenter } from "./utils.js";
+import { CORRIDORS, BLOCK_IDS } from "./rooms.js";
 
-const graph = {
-A:["C"],
-B:["C"],
-C:["A","B","D","E"],
-D:["C"],
-E:["C"]
-};
+function buildAdjacencyList() {
+  const adj = new Map();
 
-function findPath(start,end){
+  BLOCK_IDS.forEach((id) => adj.set(id, []));
 
-let queue=[[start]];
-let visited=new Set();
+  CORRIDORS.forEach(({ from, to }) => {
+    adj.get(from).push(to);
+    adj.get(to).push(from);
+  });
 
-while(queue.length){
-
-let path=queue.shift();
-let node=path[path.length-1];
-
-if(node===end) return path;
-
-if(!visited.has(node)){
-visited.add(node);
-for(let n of graph[node]){
-queue.push([...path,n]);
-}
+  return adj;
 }
 
+const ADJACENCY = buildAdjacencyList();
+
+export function findShortestPath(fromId, toId) {
+  const from = fromId.toUpperCase().trim();
+  const to   = toId.toUpperCase().trim();
+
+  if (!ADJACENCY.has(from) || !ADJACENCY.has(to)) {
+    return { path: [], found: false, steps: 0 };
+  }
+
+  if (from === to) {
+    return { path: [from], found: true, steps: 0 };
+  }
+
+  const visited  = new Set([from]);
+  const queue    = [[from]];
+
+  while (queue.length > 0) {
+    const current = queue.shift();
+    const node    = current[current.length - 1];
+
+    for (const neighbor of ADJACENCY.get(node)) {
+      if (neighbor === to) {
+        const fullPath = [...current, neighbor];
+        return { path: fullPath, found: true, steps: fullPath.length - 1 };
+      }
+
+      if (!visited.has(neighbor)) {
+        visited.add(neighbor);
+        queue.push([...current, neighbor]);
+      }
+    }
+  }
+
+  return { path: [], found: false, steps: 0 };
 }
 
-return [];
+export function formatPathResult(result) {
+  if (!result.found) {
+    return "No path found between these blocks.";
+  }
+  if (result.steps === 0) {
+    return "You're already at the destination!";
+  }
+  const arrow = result.path.join(" → ");
+  const step  = result.steps === 1 ? "1 step" : `${result.steps} steps`;
+  return `${arrow} · ${step}`;
 }
 
-export function highlight(ctx, blocks, room){
-
-const pos = getRoomPosition(blocks, room);
-
-ctx.fillStyle = "yellow";
-ctx.fillRect(pos.x,pos.y,12,12);
-
+export function getActiveEdges(path) {
+  const edges = new Set();
+  for (let i = 0; i < path.length - 1; i++) {
+    const a = path[i];
+    const b = path[i + 1];
+    edges.add([a, b].sort().join("-"));
+  }
+  return edges;
 }
 
-export function drawPath(ctx, blocks, startBlock, room){
-
-const pathBlocks = findPath(startBlock, room.block);
-
-ctx.strokeStyle = "red";
-ctx.lineWidth = 4;
-
-ctx.beginPath();
-
-for(let i=0;i<pathBlocks.length;i++){
-
-let c = getBlockCenter(blocks[pathBlocks[i]]);
-
-if(i===0) ctx.moveTo(c.x,c.y);
-else ctx.lineTo(c.x,c.y);
-
-}
-
-ctx.stroke();
-
-/* final */
-const end = getRoomPosition(blocks, room);
-const last = getBlockCenter(blocks[pathBlocks[pathBlocks.length-1]]);
-
-ctx.beginPath();
-ctx.moveTo(last.x,last.y);
-ctx.lineTo(end.x,end.y);
-ctx.stroke();
-
+export function isValidBlock(id) {
+  return ADJACENCY.has(id?.toUpperCase()?.trim());
 }

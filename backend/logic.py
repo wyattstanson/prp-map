@@ -1,67 +1,165 @@
-import re
+from dataclasses import dataclass
+from typing import Optional
 
-floor_map = {
-
-    "G": {
-        "A": range(43,54),
-        "B": range(60,68),
-        "C": range(1,29),
-        "D": range(68,73),
-        "E": range(31,40)
+BLOCK_CONFIG: dict[str, dict] = {
+    "A": {
+        "label":      "A Block",
+        "subtitle":   "Classrooms · SHINE",
+        "range_start": 1,
+        "range_end":  15,
     },
-
-    "1": {
-        "A": range(146,153),
-        "B": range(163,172),
-        "C": range(101,132),
-        "D": range(172,177),
-        "E": range(131,146)
-    }
-
+    "B": {
+        "label":      "B Block",
+        "subtitle":   "Classrooms",
+        "range_start": 16,
+        "range_end":  30,
+    },
+    "C": {
+        "label":      "C Block",
+        "subtitle":   "Central Hub · Washrooms",
+        "range_start": 31,
+        "range_end":  45,
+    },
+    "D": {
+        "label":      "D Block",
+        "subtitle":   "PRP AC Canteen",
+        "range_start": 46,
+        "range_end":  60,
+    },
+    "E": {
+        "label":      "E Block",
+        "subtitle":   "Labs · Computing",
+        "range_start": 61,
+        "range_end":  75,
+    },
 }
 
-def generate_upper_floor():
-    return {
-        "A": range(1,16),
-        "B": range(16,31),
-        "C": range(31,46),
-        "D": range(46,61),
-        "E": range(61,76)
-    }
+FLOOR_COUNT  = 8
+MAX_INDEX    = 75
+MIN_INDEX    = 1
 
-def find_block(floor, room_index):
+@dataclass
+class ParsedRoom:
+    floor:       int
+    room_index:  int
+    room_str:    str
+    floor_label: str
 
-    if floor in floor_map:
-        blocks = floor_map[floor]
-    else:
-        blocks = generate_upper_floor()
 
-    for b, rng in blocks.items():
-        if room_index in rng:
-            return b
+@dataclass
+class RoomLookupResult:
+    valid:        bool
+    room:         str           = ""
+    floor:        int           = -1
+    floor_label:  str           = ""
+    room_index:   int           = -1
+    block:        str           = ""
+    block_label:  str           = ""
+    subtitle:     str           = ""
+    range_start:  int           = -1
+    range_end:    int           = -1
+    reply:        str           = ""
 
+
+def parse_room_number(raw: str) -> Optional[ParsedRoom]:
+    text = raw.strip().upper()
+
+    if text.startswith("G"):
+        digits = text[1:]
+        if not digits.isdigit():
+            return None
+        index = int(digits)
+        if not (MIN_INDEX <= index <= MAX_INDEX):
+            return None
+        return ParsedRoom(
+            floor=0,
+            room_index=index,
+            room_str=f"G{index:02d}",
+            floor_label="Ground Floor",
+        )
+
+    if not text.isdigit():
+        return None
+
+    number = int(text)
+
+    if number < 100:
+        if not (MIN_INDEX <= number <= MAX_INDEX):
+            return None
+        return ParsedRoom(
+            floor=0,
+            room_index=number,
+            room_str=f"G{number:02d}",
+            floor_label="Ground Floor",
+        )
+
+    floor      = int(text[0])
+    room_index = int(text[1:])
+
+    if not (1 <= floor <= FLOOR_COUNT - 1):
+        return None
+    if not (MIN_INDEX <= room_index <= MAX_INDEX):
+        return None
+
+    return ParsedRoom(
+        floor=floor,
+        room_index=room_index,
+        room_str=f"{floor}{room_index:02d}",
+        floor_label=f"Floor {floor}",
+    )
+
+
+def room_index_to_block(room_index: int) -> Optional[str]:
+    for block_id, cfg in BLOCK_CONFIG.items():
+        if cfg["range_start"] <= room_index <= cfg["range_end"]:
+            return block_id
     return None
 
 
-def process_query(text):
+def resolve_room(raw_input: str) -> RoomLookupResult:
+    parsed = parse_room_number(raw_input)
 
-    match = re.search(r'\d+', text)
-    if not match:
-        return None
+    if parsed is None:
+        return RoomLookupResult(
+            valid=False,
+            reply=(
+                f'"{raw_input}" is not a valid room number. '
+                f"Try formats like 742 (floor 7, room index 42), "
+                f"115 (floor 1, room 15), or G05 (ground floor, room 5)."
+            ),
+        )
 
-    room_str = match.group()
+    block_id = room_index_to_block(parsed.room_index)
 
-    if room_str.startswith("G"):
-        floor = "G"
-        room_index = int(room_str[1:])
-    else:
-        floor = room_str[0]
-        room_index = int(room_str[1:])   # 🔥 FIX
+    if block_id is None:
+        return RoomLookupResult(
+            valid=False,
+            reply=(
+                f"Room index {parsed.room_index} is out of range. "
+                f"Valid indices are {MIN_INDEX}–{MAX_INDEX} "
+                f"(15 rooms per block, 5 blocks)."
+            ),
+        )
 
-    block = find_block(floor, room_index)
+    cfg = BLOCK_CONFIG[block_id]
 
-    return {
-        "room": room_str,
-        "floor": floor,
-        "block": block
-    }
+    reply = (
+        f"Room {parsed.room_str} is in {cfg['label']} "
+        f"({cfg['subtitle']}), {parsed.floor_label}. "
+        f"Room index {parsed.room_index} falls within the "
+        f"{block_id} Block range ({cfg['range_start']}–{cfg['range_end']})."
+    )
+
+    return RoomLookupResult(
+        valid=True,
+        room=parsed.room_str,
+        floor=parsed.floor,
+        floor_label=parsed.floor_label,
+        room_index=parsed.room_index,
+        block=block_id,
+        block_label=cfg["label"],
+        subtitle=cfg["subtitle"],
+        range_start=cfg["range_start"],
+        range_end=cfg["range_end"],
+        reply=reply,
+    )
