@@ -1,37 +1,21 @@
 export function generateRooms(){
 
-const blocks = {
-A:[1,15],
-B:[16,30],
-C:[31,45],
-D:[46,60],
-E:[61,75]
-};
-
 const rooms = {};
 
-for(let block in blocks){
+function addRange(block, floor, start, end){
 
-let [start,end] = blocks[block];
+for(let i=start; i<=end; i++){
 
-for(let floor=0; floor<=7; floor++){
+let roomNo = floor === "G"
+? "G" + String(i).padStart(2,"0")
+: String(i);
 
-for(let r=start; r<=end; r++){
+let index = i % 10;
 
-let roomNumber;
-
-if(floor === 0){
-roomNumber = "G" + String(r).padStart(2,"0");
-}else{
-roomNumber = floor + String(r).padStart(2,"0");
-}
-
-let index = r - start;
-
-rooms[roomNumber] = {
+rooms[roomNo] = {
 block,
-offsetX: (index % 5) * 20 + 10,
-offsetY: Math.floor(index / 5) * 20 + 10,
+offsetX: (index % 5) * 25 + 20,
+offsetY: Math.floor(index / 5) * 25 + 20,
 floor
 };
 
@@ -39,8 +23,19 @@ floor
 
 }
 
-}
+/* G */
+addRange("A","G",43,53);
+addRange("B","G",60,67);
+addRange("C","G",1,28);
+addRange("D","G",68,72);
+addRange("E","G",31,39);
+
+/* 1 */
+addRange("A","1",146,152);
+addRange("B","1",163,171);
+addRange("C","1",101,131);
+addRange("D","1",172,176);
+addRange("E","1",131,145);
 
 return rooms;
-
 }

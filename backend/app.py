@@ -7,17 +7,18 @@ CORS(app)
 
 @app.route("/chat", methods=["POST"])
 def chat():
-    text = request.json["message"]
 
+    text = request.json["message"]
     result = process_query(text)
 
     if not result:
-        return jsonify({"reply": "Enter valid room"})
+        return jsonify({"reply":"Invalid room"})
 
     return jsonify({
-        "reply": f"Room {result['room']} is in Block {result['block']}",
+        "reply": f"Room {result['room']} → Block {result['block']} (Floor {result['floor']})",
         "room": result["room"],
-        "block": result["block"]
+        "block": result["block"],
+        "floor": result["floor"]
     })
 
 if __name__ == "__main__":

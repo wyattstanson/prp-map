@@ -1,68 +1,155 @@
-*{ box-sizing:border-box; }
+*{
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
 
 body{
-margin:0;
-font-family:Inter, sans-serif;
-background:#0b1220;
-color:#e5e7eb;
+  font-family: Inter, sans-serif;
+  background: #0b1220;
+  color: #e5e7eb;
+  height: 100vh;
+  overflow: hidden;
 }
+
 
 .app{
-display:flex;
-height:100vh;
+  display: flex;
+  height: 100vh;
 }
+
 
 .sidebar{
-width:320px;
-background:#111827;
-padding:20px;
-display:flex;
-flex-direction:column;
-border-right:1px solid #1f2937;
+  width: 320px;
+  background: #111827;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid #1f2937;
 }
+
+.sidebar h2{
+  margin-bottom: 15px;
+}
+
+
+.floor-controls{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.floor-controls button{
+  background: #374151;
+  color: white;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.floor-controls button:hover{
+  background: #4b5563;
+}
+
 
 #messages{
-flex:1;
-overflow-y:auto;
-background:#0f172a;
-padding:10px;
-border-radius:8px;
-margin-bottom:10px;
+  flex: 1;
+  overflow-y: auto;
+  background: #0f172a;
+  padding: 10px;
+  border-radius: 8px;
+  margin-bottom: 12px;
 }
 
-.message{ margin-bottom:8px; }
-.user{ color:#93c5fd; }
-.bot{ color:#a7f3d0; }
+
+.message{
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.user{
+  color: #93c5fd;
+}
+
+.bot{
+  color: #a7f3d0;
+}
+
 
 .chat-input{
-display:flex;
-gap:8px;
+  display: flex;
+  gap: 8px;
 }
 
 input{
-flex:1;
-padding:8px;
-border:none;
-border-radius:6px;
-background:#1f2937;
-color:white;
+  flex: 1;
+  padding: 10px;
+  border: none;
+  border-radius: 8px;
+  background: #1f2937;
+  color: white;
+  outline: none;
 }
+
+input:focus{
+  outline: 2px solid #3b82f6;
+}
+
 
 button{
-padding:8px;
-border:none;
-border-radius:6px;
-background:#3b82f6;
-color:white;
-cursor:pointer;
+  padding: 10px 14px;
+  border: none;
+  border-radius: 8px;
+  background: #3b82f6;
+  color: white;
+  cursor: pointer;
+  transition: 0.2s;
 }
+
+button:hover{
+  background: #2563eb;
+}
+
 
 .map-container{
-flex:1;
+  flex: 1;
+  position: relative;
+  overflow: hidden;
 }
 
-canvas{
+
+.bg-image{
+position:absolute;
+top:0;
+left:0;
 width:100%;
 height:100%;
-display:block;
+object-fit:cover;
+opacity:1;        
+z-index:0;
+}
+
+
+canvas{
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+background: rgba(255,0,0,0.1);
+  z-index: 1;
+}
+
+
+#messages::-webkit-scrollbar{
+  width: 6px;
+}
+
+#messages::-webkit-scrollbar-thumb{
+  background: #374151;
+  border-radius: 4px;
 }

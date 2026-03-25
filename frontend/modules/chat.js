@@ -5,23 +5,20 @@ const input = document.getElementById("chatInput");
 const button = document.getElementById("sendBtn");
 
 function addMessage(text, type){
-const div = document.createElement("div");
-div.classList.add("message", type);
-div.innerText = text;
+const div=document.createElement("div");
+div.classList.add("message",type);
+div.innerText=text;
 messages.appendChild(div);
-messages.scrollTop = messages.scrollHeight;
+messages.scrollTop=messages.scrollHeight;
 }
 
 async function sendMessage(){
 
-const userText = input.value.trim();
+const userText=input.value.trim();
 if(!userText) return;
 
-addMessage(userText, "user");
-input.value = "";
-input.focus();
-
-try{
+addMessage(userText,"user");
+input.value="";
 
 const res = await fetch("http://localhost:5000/chat",{
 method:"POST",
@@ -31,29 +28,29 @@ body: JSON.stringify({message:userText})
 
 const data = await res.json();
 
-addMessage(data.reply, "bot");
+addMessage(data.reply,"bot");
 
 if(data.room){
-const room = rooms[data.room];
+
+const room=rooms[data.room];
+
 if(room){
+window.setFloor(data.floor);
 draw();
 highlight(ctx,blocks,room);
 drawPath(ctx,blocks,"A",room);
 }
-}
 
-}catch(err){
-addMessage("Server error. Start backend.", "bot");
 }
 
 }
 
-button.onclick = sendMessage;
+button.onclick=sendMessage;
 
 input.addEventListener("keydown",(e)=>{
-if(e.key === "Enter") sendMessage();
+if(e.key==="Enter") sendMessage();
 });
 
-addMessage("Hi. Ask a room number (e.g. 742)", "bot");
+addMessage("Ask a room (e.g. 742)", "bot");
 
 }

@@ -13,15 +13,28 @@
   <div class="sidebar">
     <h2>PRP Navigator</h2>
 
+    <div class="floor-controls">
+      <button onclick="setFloor('G')">G</button>
+      <button onclick="setFloor('1')">1</button>
+      <button onclick="setFloor('2')">2</button>
+      <button onclick="setFloor('3')">3</button>
+      <button onclick="setFloor('4')">4</button>
+      <button onclick="setFloor('5')">5</button>
+      <button onclick="setFloor('6')">6</button>
+      <button onclick="setFloor('7')">7</button>
+    </div>
+
     <div id="messages"></div>
 
     <div class="chat-input">
       <input id="chatInput" placeholder="Ask (e.g. 742)">
       <button id="sendBtn">Send</button>
     </div>
+
   </div>
 
   <div class="map-container">
+    <img src="prp.jpg" class="bg-image">
     <canvas id="map"></canvas>
   </div>
 
