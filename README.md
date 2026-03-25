@@ -1,152 +1,191 @@
 # PRP Navigator
 
-PRP Navigator is an interactive 3D visualization and navigation system for the PRP academic complex at VIT Vellore. The project models the building layout using five blocks (A–E), each containing multiple floors and room ranges. Users can explore the campus environment in 3D, search for specific rooms, and visualize navigation paths between rooms.
+An interactive campus navigation system that combines a visual map, chat-based room lookup, and shortest-path routing. Built using Flask for the backend and a modular JavaScript frontend with canvas rendering.
 
 ---
 
 ## Overview
 
-Large academic buildings such as the PRP complex can be difficult to navigate, especially for new students or visitors. PRP Navigator provides a digital 3D representation of the building layout that allows users to explore blocks, floors, and rooms interactively.
-
-The system integrates spatial visualization with room mapping to simplify navigation and demonstrate how 3D interfaces can assist in indoor navigation within large institutional infrastructures.
+PRP Navigator is designed to help users quickly locate rooms and navigate between blocks within a campus. It provides both a conversational interface and a graphical map, making it intuitive and efficient to use.
 
 ---
 
 ## Features
 
-• Interactive 3D visualization of the PRP building layout
-• Five building blocks (A, B, C, D, and E)
-• Ground floor plus seven additional floors per block
-• Fifteen rooms per floor generated dynamically
-• Room search functionality that identifies the correct block and floor
-• Hover detection displaying room numbers
-• First-person walk mode for corridor exploration
-• Toggleable night mode visualization
-• Shortest path navigation between rooms
-• Interactive camera controls including zoom and rotation
+* Shortest path navigation between campus blocks using BFS
+* Chat-based room lookup (e.g. `742`, `G05`)
+* Interactive canvas map with zoom, pan, and hover
+* Block selection with detailed information panel
+* Floor-based filtering and 3D stacked visualization
+* Real-time highlighting of blocks and navigation paths
 
 ---
 
-## Building Layout
+## Architecture
 
-The PRP complex is modeled using five blocks, each associated with a specific range of room numbers.
+The project is structured into two main components:
 
-| Block | Room Range |
-| ----- | ---------- |
-| A     | 01 – 15    |
-| B     | 16 – 30    |
-| C     | 31 – 45    |
-| D     | 46 – 60    |
-| E     | 61 – 75    |
+### Backend (Flask)
 
-Each block contains eight levels: Ground floor plus seven upper floors.
+* Handles room parsing and validation
+* Resolves room to block and floor
+* Computes shortest path between blocks
+* Exposes REST APIs
 
-Example for A Block:
+### Frontend (Vanilla JS + Canvas)
 
-| Floor  | Rooms     |
-| ------ | --------- |
-| Ground | G01 – G15 |
-| 1st    | 101 – 115 |
-| 2nd    | 201 – 215 |
-| 3rd    | 301 – 315 |
-| 4th    | 401 – 415 |
-| 5th    | 501 – 515 |
-| 6th    | 601 – 615 |
-| 7th    | 701 – 715 |
+* Renders the campus map
+* Handles user interaction (click, hover, zoom, pan)
+* Communicates with backend APIs
+* Displays chat responses and navigation results
 
 ---
 
-## Technology Stack
-
-• JavaScript (ES6+)
-• Three.js for 3D rendering
-• WebGL for graphics rendering
-• HTML5 and CSS3
-• OrbitControls and PointerLockControls for navigation
-
----
-
-## Installation
-
-Clone the repository:
+## Project Structure
 
 ```
-git clone https://github.com/yourusername/prp-navigator.git
-```
-
-Navigate to the project directory:
-
-```
-cd prp-navigator
-```
-
-Run the project by opening the main file:
-
-```
-index.html
-```
-
-Alternatively, run a simple local server:
-
-```
-python -m http.server
-```
-
-Then open:
-
-```
-http://localhost:8000
+prp-navigator/
+│
+├── backend/
+│   ├── app.py
+│   ├── logic.py
+│   ├── pathfinding.py
+│
+├── frontend/
+│   ├── index.html
+│   ├── app.js
+│   ├── modules/
+│   │   ├── map.js
+│   │   ├── chat.js
+│   │   ├── navigation.js
+│   │   ├── rooms.js
+│   │   ├── utils.js
+│
+└── README.md
 ```
 
 ---
 
-## Usage
+## API Endpoints
 
-Explore the 3D campus using mouse-based navigation.
+### POST `/chat`
 
-Mouse drag rotates the camera around the campus environment.
-Scroll wheel controls zooming.
+Resolve a room number into block and floor information.
 
-Walk Mode allows first-person exploration inside corridors.
+Request:
 
-To search for a room, enter a room number such as:
-
-```
-742
+```json
+{ "message": "742" }
 ```
 
-The system automatically determines the corresponding block and floor and navigates to the location.
+Response:
 
-For navigation between rooms, enter a start and destination room to visualize the route.
+```json
+{
+  "valid": true,
+  "room": "742",
+  "floor": 7,
+  "block": "D"
+}
+```
 
 ---
 
-## Project Statistics
+### POST `/navigate`
 
-• 5 building blocks
-• 8 floors per block
-• 15 rooms per floor
-• 600 rooms generated dynamically
+Find shortest path between blocks.
+
+Request:
+
+```json
+{ "from": "A", "to": "D" }
+```
+
+Response:
+
+```json
+{
+  "found": true,
+  "path": ["A", "C", "D"],
+  "steps": 2
+}
+```
+
+---
+
+### GET `/blocks`
+
+Returns metadata for all blocks.
+
+---
+
+### GET `/health`
+
+Health check endpoint.
+
+---
+
+## How It Works
+
+1. The user enters a room number or block navigation request.
+2. The frontend sends a request to the Flask backend.
+3. The backend:
+
+   * Parses the input
+   * Validates it
+   * Computes the result (room lookup or shortest path)
+4. The frontend updates:
+
+   * Map visualization
+   * Highlighted blocks
+   * Chat response
+
+---
+
+## Running Locally
+
+### 1. Start Backend
+
+```bash
+cd backend
+python app.py
+```
+
+Server runs at:
+
+```
+http://127.0.0.1:5000
+```
+
+---
+
+### 2. Run Frontend
+
+Open `frontend/index.html` in a browser
+or use Live Server in VS Code.
+
+---
+
+## Example Usage
+
+* Enter `742` in chat to locate a room
+* Enter `A → D` using navigation inputs to see the shortest path
+* Click on blocks to view details
+* Toggle floor view for different levels
 
 ---
 
 ## Future Improvements
 
-• Accurate architectural layout of the PRP complex
-• Corridor and staircase modeling
-• Advanced pathfinding using A* algorithm
-• Mini-map based navigation
-• Room information panels
-• Augmented reality navigation integration
+* Deploy frontend and backend
+* Add mobile responsiveness
+* Improve path visualization with animations
+* Add search suggestions and autocomplete
+* Integrate real campus data
 
 ---
 
 ## License
 
-This project is intended for educational and demonstration purposes.
+This project is for educational and demonstration purposes.
 
----
-
-## Author
-
-Developed as a 3D campus navigation prototype for modeling building layouts and indoor navigation concepts at VIT Vellore.
