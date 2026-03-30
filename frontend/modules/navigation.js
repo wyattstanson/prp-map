@@ -1,77 +1,34 @@
-import { CORRIDORS, BLOCK_IDS } from "./rooms.js";
+import { BLOCK_IDS, CORRIDORS } from "./rooms.js";
 
-function buildAdjacencyList() {
-  const adj = new Map();
-
-  BLOCK_IDS.forEach((id) => adj.set(id, []));
-
-  CORRIDORS.forEach(({ from, to }) => {
-    adj.get(from).push(to);
-    adj.get(to).push(from);
-  });
-
+function buildAdj() {
+  const adj = {};
+  BLOCK_IDS.forEach(id => (adj[id] = []));
+  CORRIDORS.forEach(([a, b]) => { adj[a].push(b); adj[b].push(a); });
   return adj;
 }
 
-const ADJACENCY = buildAdjacencyList();
+const ADJ = buildAdj();
 
-export function findShortestPath(fromId, toId) {
-  const from = fromId.toUpperCase().trim();
-  const to   = toId.toUpperCase().trim();
-
-  if (!ADJACENCY.has(from) || !ADJACENCY.has(to)) {
-    return { path: [], found: false, steps: 0 };
-  }
-
-  if (from === to) {
-    return { path: [from], found: true, steps: 0 };
-  }
-
-  const visited  = new Set([from]);
-  const queue    = [[from]];
-
-  while (queue.length > 0) {
-    const current = queue.shift();
-    const node    = current[current.length - 1];
-
-    for (const neighbor of ADJACENCY.get(node)) {
-      if (neighbor === to) {
-        const fullPath = [...current, neighbor];
-        return { path: fullPath, found: true, steps: fullPath.length - 1 };
-      }
-
-      if (!visited.has(neighbor)) {
-        visited.add(neighbor);
-        queue.push([...current, neighbor]);
-      }
+export function findPath(src, dst) {
+  if (!ADJ[src] || !ADJ[dst]) return null;
+  if (src === dst) return [src];
+  const visited = new Set([src]), queue = [[src]];
+  while (queue.length) {
+    const path = queue.shift(), node = path[path.length - 1];
+    for (const nb of ADJ[node]) {
+      if (nb === dst) return [...path, nb];
+      if (!visited.has(nb)) { visited.add(nb); queue.push([...path, nb]); }
     }
   }
-
-  return { path: [], found: false, steps: 0 };
+  return null;
 }
 
-export function formatPathResult(result) {
-  if (!result.found) {
-    return "No path found between these blocks.";
-  }
-  if (result.steps === 0) {
-    return "You're already at the destination!";
-  }
-  const arrow = result.path.join(" → ");
-  const step  = result.steps === 1 ? "1 step" : `${result.steps} steps`;
-  return `${arrow} · ${step}`;
-}
-
-export function getActiveEdges(path) {
-  const edges = new Set();
-  for (let i = 0; i < path.length - 1; i++) {
-    const a = path[i];
-    const b = path[i + 1];
-    edges.add([a, b].sort().join("-"));
-  }
-  return edges;
+export function formatPath(path) {
+  if (!path) return null;
+  const steps = path.length - 1;
+  return `${path.join(" → ")} · ${steps === 1 ? "1 step" : steps + " steps"}`;
 }
 
 export function isValidBlock(id) {
-  return ADJACENCY.has(id?.toUpperCase()?.trim());
+  return !!ADJ[id?.toUpperCase()?.trim()];
 }

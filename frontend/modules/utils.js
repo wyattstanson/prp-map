@@ -1,63 +1,46 @@
-export function lerp(a, b, t) {
-  return a + (b - a) * t;
-}
+export function lerp(a, b, t) { return a + (b - a) * t; }
 
-export function clamp(value, min, max) {
-  return Math.min(Math.max(value, min), max);
-}
+export function clamp(v, min, max) { return Math.min(Math.max(v, min), max); }
 
-export function hexToRgba(hex, alpha = 1) {
+export function hexToRgba(hex, a) {
   const r = parseInt(hex.slice(1, 3), 16);
   const g = parseInt(hex.slice(3, 5), 16);
   const b = parseInt(hex.slice(5, 7), 16);
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  return `rgba(${r},${g},${b},${a})`;
 }
 
-export function hexagonPoints(cx, cy, r, rotationDeg = 0) {
-  const rotRad = (rotationDeg * Math.PI) / 180;
-  return Array.from({ length: 6 }, (_, i) => {
-    const angle = rotRad + (Math.PI / 3) * i;
-    return {
-      x: cx + r * Math.cos(angle),
-      y: cy + r * Math.sin(angle),
-    };
-  });
-}
-
-export function pointInPolygon(px, py, vertices) {
-  let inside = false;
-  const n = vertices.length;
+export function pointInPolygon(px, py, pts) {
+  let inside = false, n = pts.length;
   for (let i = 0, j = n - 1; i < n; j = i++) {
-    const xi = vertices[i].x, yi = vertices[i].y;
-    const xj = vertices[j].x, yj = vertices[j].y;
-    const intersects =
-      yi > py !== yj > py &&
-      px < ((xj - xi) * (py - yi)) / (yj - yi) + xi;
-    if (intersects) inside = !inside;
+    const xi = pts[i].x, yi = pts[i].y, xj = pts[j].x, yj = pts[j].y;
+    if ((yi > py) !== (yj > py) && px < ((xj - xi) * (py - yi) / (yj - yi) + xi))
+      inside = !inside;
   }
   return inside;
 }
 
-export function freeze(obj) {
-  return Object.freeze(obj);
+export function roundRect(ctx, x, y, w, h, r) {
+  r = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
 }
 
-export function debounce(fn, wait) {
-  let timer;
-  return (...args) => {
-    clearTimeout(timer);
-    timer = setTimeout(() => fn(...args), wait);
-  };
-}
+export function easeInOut(t) { return t * t * (3 - 2 * t); }
 
-export function blockLabel(block, floor, startRoom, endRoom) {
-  const floorStr = floor === 0 ? "Ground" : `Floor ${floor}`;
-  return `${block} Block · ${floorStr} · Rooms ${startRoom}–${endRoom}`;
-}
-
-export function adjustBrightness(hex, factor) {
-  const r = clamp(Math.round(parseInt(hex.slice(1, 3), 16) * factor), 0, 255);
-  const g = clamp(Math.round(parseInt(hex.slice(3, 5), 16) * factor), 0, 255);
-  const b = clamp(Math.round(parseInt(hex.slice(5, 7), 16) * factor), 0, 255);
-  return `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
+export function loadImage(src) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = src;
+  });
 }

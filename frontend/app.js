@@ -1,247 +1,160 @@
-import { initMap, resizeCanvas, centerView, setSelectedBlock,
-         setActiveFloor, setActivePath, clearActivePath,
-         zoomIn, zoomOut, setHighlightedRoom } from "./modules/map.js";
+import { initMap, resize as mapResize, center as mapCenter,
+         setSelected, setPath, clearPath, setHighlight,
+         zoomIn, zoomOut } from "./modules/map.js";
 
-import { initChat, appendMessage }             from "./modules/chat.js";
+import { initInterior, open as openInterior,
+         close as closeInterior, resizeCanvas as intResize } from "./modules/interior.js";
 
-import { BLOCK_CONFIG }                        from "./modules/rooms.js";
+import { initChat, addMessage } from "./modules/chat.js";
 
-import { findShortestPath, formatPathResult,
-         getActiveEdges, isValidBlock }        from "./modules/navigation.js";
+import { BLOCK_CONFIG, BLOCK_IDS, FLOOR_OPTIONS } from "./modules/rooms.js";
 
-import { getFloorOptions }                     from "./modules/rooms.js";
+import { findPath, formatPath, isValidBlock } from "./modules/navigation.js";
 
-const canvasEl       = document.getElementById("mapCanvas");
-const canvasWrap     = document.getElementById("canvasWrap");
-const tooltipEl      = createTooltip();
+const $ = id => document.getElementById(id);
 
-const floorGridEl    = document.getElementById("floorGrid");
-const mapFloorBadge  = document.getElementById("mapFloorBadge");
-const canvasHint     = document.getElementById("canvasHint");
-
-const infoPanelEmpty   = document.getElementById("infoPanelEmpty");
-const infoPanelContent = document.getElementById("infoPanelContent");
-const infoBlockName    = document.getElementById("infoBlockName");
-const infoMeta         = document.getElementById("infoMeta");
-const infoTags         = document.getElementById("infoTags");
-const legendItems      = document.getElementById("legendItems");
-
-const navFromEl      = document.getElementById("navFrom");
-const navToEl        = document.getElementById("navTo");
-const btnNavigate    = document.getElementById("btnNavigate");
-const btnClear       = document.getElementById("btnClear");
-const pathResult     = document.getElementById("pathResult");
-
-const btnZoomIn      = document.getElementById("btnZoomIn");
-const btnZoomOut     = document.getElementById("btnZoomOut");
-const btnReset       = document.getElementById("btnReset");
-const btnToggle3D    = document.getElementById("btnToggle3D");
-
-const chatMessages   = document.getElementById("chatMessages");
-const chatInputEl    = document.getElementById("chatInput");
-const btnSend        = document.getElementById("btnSend");
-
-let currentFloor = -1;
-let is3D         = false;
+const mapCanvas   = $("mapCanvas");
+const mapWrap     = $("mapWrap");
+const tooltipEl   = $("tooltip");
+const floorGrid   = $("floorGrid");
+const floorBadge  = $("floorBadge");
+const mapHint     = $("mapHint");
+const infoEmpty   = $("infoEmpty");
+const infoContent = $("infoContent");
+const infoName    = $("infoName");
+const infoMeta    = $("infoMeta");
+const infoTags    = $("infoTags");
+const legendList  = $("legendList");
+const navFrom     = $("navFrom");
+const navTo       = $("navTo");
+const pathResult  = $("pathResult");
+const loaderEl    = $("loader");
 
 document.addEventListener("DOMContentLoaded", () => {
-  showLoadingScreen().then(bootstrap);
+  buildLegend();
+  buildFloorGrid();
+
+  initMap(mapCanvas, mapWrap, tooltipEl, {
+    onClick: onBlockClick,
+    onHover: () => {},
+  });
+
+  initInterior(
+    {
+      interior: $("interior"),
+      canvas:   $("intCanvas"),
+      floors:   $("intFloors"),
+      info:     $("intInfo"),
+      title:    $("intTitleBlock"),
+      backBtn:  $("intBack"),
+    },
+    { onClose: onInteriorClose }
+  );
+
+  initChat(
+    { msgs: $("chatMsgs"), input: $("chatInput"), send: $("chatSend") },
+    { onRoomFound: onRoomFound }
+  );
+
+  $("btnNav").addEventListener("click",  runNavigation);
+  $("btnClr").addEventListener("click",  clearNavigation);
+  $("btnZoomIn").addEventListener("click",  zoomIn);
+  $("btnZoomOut").addEventListener("click", zoomOut);
+  $("btnReset").addEventListener("click",   () => { mapResize(); mapCenter(); });
+
+  ["navFrom","navTo"].forEach(id => {
+    const el = $(id);
+    el.addEventListener("input",   () => { el.value = el.value.toUpperCase().replace(/[^A-E]/g, ""); });
+    el.addEventListener("keydown", e  => { if (e.key === "Enter") runNavigation(); });
+  });
+
+  setTimeout(() => { loaderEl.classList.add("out"); setTimeout(() => loaderEl.remove(), 520); }, 820);
+  setTimeout(() => mapHint.classList.add("gone"), 5000);
+  mapCanvas.addEventListener("mousedown", () => mapHint.classList.add("gone"), { once: true });
 });
 
-async function bootstrap() {
-  buildLegend();
-  buildFloorSelector();
-  initMap(canvasEl, tooltipEl, {
-    onClick: handleBlockClick,
-    onHover: handleBlockHover,
-  });
-  initChat(
-    { messages: chatMessages, input: chatInputEl, sendBtn: btnSend },
-    { onRoomLocated: handleRoomLocated }
-  );
-  attachToolbarListeners();
-  attachNavListeners();
-  fadeHint();
-}
-
-function showLoadingScreen() {
-  const overlay = document.createElement("div");
-  overlay.className = "loading-overlay";
-  overlay.innerHTML = `
-    <div class="loading-logo">PRP<em>Nav</em></div>
-    <div class="loading-bar-wrap"><div class="loading-bar"></div></div>
-    <div class="loading-text">Initialising campus map…</div>
-  `;
-  document.body.appendChild(overlay);
-
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      overlay.classList.add("hidden");
-      setTimeout(() => overlay.remove(), 500);
-      resolve();
-    }, 1000);
-  });
-}
-
-function createTooltip() {
-  const el = document.createElement("div");
-  el.className = "map-tooltip";
-  el.innerHTML = `<div class="tooltip-name"></div><div class="tooltip-sub"></div>`;
-  document.body.appendChild(el);
-  return el;
-}
-
 function buildLegend() {
-  Object.values(BLOCK_CONFIG).forEach((cfg) => {
-    const item  = document.createElement("div");
-    item.className = "legend-item";
-    const swatch = document.createElement("div");
-    swatch.className = "legend-swatch";
-    swatch.style.background = cfg.color;
-    const label = document.createElement("span");
-    label.textContent = `${cfg.id} Block — ${cfg.subtitle.split("·")[0].trim()}`;
-    item.appendChild(swatch);
-    item.appendChild(label);
-    legendItems.appendChild(item);
+  BLOCK_IDS.forEach(id => {
+    const b = BLOCK_CONFIG[id];
+    const item = document.createElement("div"); item.className = "legend-item";
+    const sw = document.createElement("div"); sw.className = "legend-swatch"; sw.style.background = b.color;
+    const lbl = document.createElement("span"); lbl.textContent = `${id} — ${b.subtitle.split("·")[0].trim()}`;
+    item.appendChild(sw); item.appendChild(lbl); legendList.appendChild(item);
   });
 }
 
-function buildFloorSelector() {
-  const options = getFloorOptions();
-  options.forEach(({ value, label }) => {
+function buildFloorGrid() {
+  FLOOR_OPTIONS.forEach(({ v, l }) => {
     const btn = document.createElement("button");
-    btn.className = "floor-btn" + (value === -1 ? " active" : "");
-    btn.textContent = label;
-    btn.dataset.floor = value;
-    btn.addEventListener("click", () => selectFloor(value));
-    floorGridEl.appendChild(btn);
+    btn.className = "floor-btn" + (v === -1 ? " active" : "");
+    btn.textContent = l; btn.dataset.v = v;
+    btn.addEventListener("click", () => {
+      floorGrid.querySelectorAll(".floor-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      floorBadge.textContent = v === -1 ? "All Floors" : v === 0 ? "Ground Floor" : `Floor ${v}`;
+    });
+    floorGrid.appendChild(btn);
   });
 }
 
-function selectFloor(floor) {
-  currentFloor = floor;
-  setActiveFloor(floor);
-
-  mapFloorBadge.textContent =
-    floor === -1 ? "All Floors" : floor === 0 ? "Ground Floor" : `Floor ${floor}`;
-
-  floorGridEl.querySelectorAll(".floor-btn").forEach((btn) => {
-    btn.classList.toggle("active", Number(btn.dataset.floor) === floor);
-  });
+function onBlockClick(id) {
+  if (!id) { showInfoEmpty(); return; }
+  showInfoBlock(id);
+  setSelected(id);
+  openInterior(id);
 }
 
-function handleBlockClick(blockId) {
-  if (!blockId) {
-    infoPanelEmpty.classList.remove("hidden");
-    infoPanelContent.classList.add("hidden");
-    return;
-  }
-  const cfg = BLOCK_CONFIG[blockId];
-  infoPanelEmpty.classList.add("hidden");
-  infoPanelContent.classList.remove("hidden");
+function onInteriorClose() {
+  setSelected(null);
+  showInfoEmpty();
+}
 
-  infoBlockName.textContent  = cfg.label;
-  infoBlockName.style.color  = cfg.color;
-  infoMeta.innerHTML =
-    `${cfg.subtitle}<br>` +
-    `Rooms ${cfg.rangeStart}–${cfg.rangeEnd} per floor · 8 floors`;
+function showInfoEmpty() {
+  infoEmpty.classList.remove("hidden");
+  infoContent.classList.add("hidden");
+}
 
+function showInfoBlock(id) {
+  const b = BLOCK_CONFIG[id];
+  infoEmpty.classList.add("hidden");
+  infoContent.classList.remove("hidden");
+  infoName.textContent = b.label; infoName.style.color = b.color;
+  infoMeta.innerHTML = `${b.subtitle}<br>Rooms ${b.rs}–${b.re} per floor · 8 floors`;
   infoTags.innerHTML = "";
-  cfg.tags.forEach((tag) => {
-    const span = document.createElement("span");
-    span.className = "tag accent";
-    span.textContent = tag;
-    infoTags.appendChild(span);
+  b.tags.forEach(t => {
+    const s = document.createElement("span"); s.className = "tag ac"; s.textContent = t; infoTags.appendChild(s);
   });
 }
 
-function handleBlockHover(_blockId) {}
-
-function handleRoomLocated(data) {
-  if (!data.valid) return;
-
-  setHighlightedRoom(data.block);
-  setSelectedBlock(data.block);
-  handleBlockClick(data.block);
-
-  selectFloor(data.floor);
-
-  setTimeout(() => setHighlightedRoom(null), 3000);
-}
-
-function attachNavListeners() {
-  btnNavigate.addEventListener("click", runNavigation);
-  btnClear.addEventListener("click", clearNavigation);
-
-  [navFromEl, navToEl].forEach((el) => {
-    el.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") runNavigation();
-    });
-    el.addEventListener("input", () => {
-      el.value = el.value.toUpperCase().replace(/[^A-E]/g, "");
-    });
-  });
+function onRoomFound(data) {
+  setHighlight(data.block); setSelected(data.block);
+  showInfoBlock(data.block);
+  const fl = data.floor;
+  floorGrid.querySelectorAll(".floor-btn").forEach(b => b.classList.toggle("active", parseInt(b.dataset.v) === fl));
+  floorBadge.textContent = fl === 0 ? "Ground Floor" : `Floor ${fl}`;
+  openInterior(data.block);
+  setTimeout(() => setHighlight(null), 3000);
 }
 
 function runNavigation() {
-  const from = navFromEl.value.trim().toUpperCase();
-  const to   = navToEl.value.trim().toUpperCase();
-
-  if (!from || !to) {
-    showPathResult("Enter both a start and destination block.", false);
-    return;
-  }
-  if (!isValidBlock(from) || !isValidBlock(to)) {
-    showPathResult("Use block letters A through E only.", false);
-    return;
-  }
-
-  const result = findShortestPath(from, to);
-  const text   = formatPathResult(result);
-  showPathResult(text, result.found);
-
-  if (result.found) {
-    const edges = getActiveEdges(result.path);
-    setActivePath(result.path, edges);
-  }
+  const f = navFrom.value.trim().toUpperCase();
+  const t = navTo.value.trim().toUpperCase();
+  if (!f || !t) { showPathResult("Enter both blocks (A–E).", false); return; }
+  if (!isValidBlock(f) || !isValidBlock(t)) { showPathResult("Use A through E only.", false); return; }
+  const path = findPath(f, t);
+  if (!path) { showPathResult("No path found.", false); return; }
+  setPath(path);
+  showPathResult(formatPath(path), true);
 }
 
 function clearNavigation() {
-  navFromEl.value = "";
-  navToEl.value   = "";
+  navFrom.value = ""; navTo.value = "";
   pathResult.classList.add("hidden");
-  clearActivePath();
+  clearPath();
 }
 
-function showPathResult(text, success) {
-  pathResult.classList.remove("hidden");
+function showPathResult(text, ok) {
+  pathResult.classList.remove("hidden", "err");
+  if (!ok) pathResult.classList.add("err");
   pathResult.textContent = text;
-  pathResult.style.borderColor = success
-    ? "rgba(110, 231, 192, 0.25)"
-    : "rgba(240, 100, 100, 0.25)";
-  pathResult.style.background = success
-    ? "rgba(110, 231, 192, 0.08)"
-    : "rgba(240, 100, 100, 0.08)";
-  pathResult.style.color = success ? "var(--accent2)" : "var(--danger)";
-}
-
-function attachToolbarListeners() {
-  btnZoomIn.addEventListener("click",  zoomIn);
-  btnZoomOut.addEventListener("click", zoomOut);
-  btnReset.addEventListener("click",   () => { resizeCanvas(); centerView(); });
-  btnToggle3D.addEventListener("click", () => {
-    is3D = !is3D;
-    btnToggle3D.classList.toggle("active", is3D);
-    selectFloor(is3D ? -1 : currentFloor);
-    appendMessage("bot",
-      is3D
-        ? "3D stacked view enabled — showing floor depth illusion."
-        : "Switched back to flat floor view."
-    );
-  });
-}
-
-function fadeHint() {
-  setTimeout(() => canvasHint.classList.add("faded"), 4000);
-  canvasEl.addEventListener("mousedown", () => canvasHint.classList.add("faded"), { once: true });
 }
